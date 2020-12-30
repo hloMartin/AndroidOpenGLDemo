@@ -7,18 +7,18 @@ import android.content.Context
 import android.opengl.GLSurfaceView
 import android.view.MotionEvent
 
-class TestGLSurfaceView(context: Context) : GLSurfaceView(context) {
+class DemoGLSurfaceView(context: Context, type: Int) : GLSurfaceView(context) {
 
-    val ANIMATION_TIME = 1000L
+    val ANIMATION_TIME = 1500L
 
-    private val renderer: TestRenderer
+    private val renderer: DemoRenderer
 
     private var isChanging = false
 
     init {
         setEGLContextClientVersion(2)
 
-        renderer = TestRenderer(context)
+        renderer = DemoRenderer(context, getDemoFragmentShader(type))
         setRenderer(renderer)
         //设置 View 的更新需要主动调用 requestRender()
         renderMode = RENDERMODE_WHEN_DIRTY

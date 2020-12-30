@@ -7,7 +7,7 @@ import java.nio.FloatBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
+class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView.Renderer {
 
     //顶点着色器
     private var VETEXT_SHADER = """
@@ -21,26 +21,7 @@ class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
                         """
 
     //片段着色器
-    private var FRAGMENT_SHADER = """
-                        precision mediump float;
-                        varying vec2 v_TexCoord;
-                        uniform sampler2D u_TextureUnit;
-                        uniform sampler2D u_TextureUnit1;
-                        uniform float progress;
-                        const float intensity = 0.3;
-                        
-                        void main() {
-                            vec4 d1 = texture2D(u_TextureUnit, v_TexCoord);
-                            vec4 d2 = texture2D(u_TextureUnit1, v_TexCoord);
-                            float displace1 = (d1.r + d1.g + d1.b)*0.33;
-                            float displace2 = (d2.r + d2.g + d2.b)*0.33;
-                            
-                            vec4 t1 = texture2D(u_TextureUnit, vec2(v_TexCoord.x, v_TexCoord.y + progress * (displace2 * intensity)));
-                            vec4 t2 = texture2D(u_TextureUnit1, vec2(v_TexCoord.x, v_TexCoord.y + (1.0 - progress) * (displace1 * intensity)));
-                                
-                            gl_FragColor = mix(t1, t2, progress);
-                        }
-                        """
+    private var FRAGMENT_SHADER = ""
 
     //顶点坐标
     private val VERTEX_POINT_DATA = floatArrayOf(
@@ -85,6 +66,7 @@ class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
     private var mProgress = 0f
 
     init {
+        FRAGMENT_SHADER = fragmentShader
         mVertexData = createFloatBuffer(VERTEX_POINT_DATA)
         mTexVertexBuffer = createFloatBuffer(TEXTURE_POINT_DATA)
     }
@@ -109,16 +91,39 @@ class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
         var vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
         GLES20.glShaderSource(vertexShader, VETEXT_SHADER)
         GLES20.glCompileShader(vertexShader)
+        //获取状态
+        var compileStatus = IntArray(1)
+        GLES20.glGetShaderiv(vertexShader, GLES20.GL_COMPILE_STATUS, compileStatus, 0)
+        if (compileStatus[0] == 0) {
+            log_e("load vertex shader error... code:$VETEXT_SHADER")
+        }else{
+            log_d("load vertex shader succ....")
+        }
         //创建并编译片段着色器
         var fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
         GLES20.glShaderSource(fragmentShader, FRAGMENT_SHADER)
         GLES20.glCompileShader(fragmentShader)
+        //获取状态
+        GLES20.glGetShaderiv(vertexShader, GLES20.GL_COMPILE_STATUS, compileStatus, 0)
+        if (compileStatus[0] == 0) {
+            log_e("load fragment shader error... code:$FRAGMENT_SHADER")
+        }else{
+            log_d("load fragment shader succ....")
+        }
+
         //创建着色器程序
         mProgram = GLES20.glCreateProgram()
         //加载着色器，并将它们链接起来
         GLES20.glAttachShader(mProgram, vertexShader)
         GLES20.glAttachShader(mProgram, fragmentShader)
         GLES20.glLinkProgram(mProgram)
+        //检测状态
+        GLES20.glGetProgramiv(mProgram, GLES20.GL_LINK_STATUS, compileStatus, 0)
+        if (compileStatus[0] != GLES20.GL_TRUE) {
+            log_e("create Program failed....")
+        }else{
+            log_d("create Program succ")
+        }
         //使用着色器程序
         GLES20.glUseProgram(mProgram)
 
@@ -130,6 +135,8 @@ class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
         texture1Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit")
         texture2Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit1")
         progressLocation = GLES20.glGetUniformLocation(mProgram, "progress")
+
+        log_d("vertexPositionLocation:$vertexPositionLocation  texturePositionLocation:$texturePositionLocation")
 
         //传入顶点坐标
         mVertexData.position(0)
@@ -143,8 +150,8 @@ class TestRenderer(val context: Context) : GLSurfaceView.Renderer {
         GLES20.glEnableVertexAttribArray(texturePositionLocation)
 
         //将图片数据加载到纹理
-        texture1 = loadImageTexture(context, R.drawable.img51)
-        texture2 = loadImageTexture(context, R.drawable.img52)
+        texture1 = loadImageTexture(context, image01)
+        texture2 = loadImageTexture(context, image02)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {

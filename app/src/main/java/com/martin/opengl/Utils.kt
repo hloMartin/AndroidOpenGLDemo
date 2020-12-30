@@ -15,6 +15,10 @@ const val SIZEOF_FLOAT = 4
 
 const val LOG_TAG = "martin"
 
+//简单做一下不同 demo 下的图片的切换处理
+var image01 = R.drawable.img11
+var image02 = R.drawable.img12
+
 fun createFloatBuffer(coords: FloatArray): FloatBuffer {
     return ByteBuffer.allocateDirect(coords.size * SIZEOF_FLOAT).run {
         order(ByteOrder.nativeOrder())
