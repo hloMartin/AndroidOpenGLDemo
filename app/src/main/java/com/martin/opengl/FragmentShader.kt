@@ -178,7 +178,30 @@ const val FRAGMENT_SHADER_DEMO2 = """
 """
 
 const val FRAGMENT_SHADER_DEMO3 = """
-    
+        precision mediump float;
+        varying vec2 v_TexCoord;
+        uniform sampler2D u_TextureUnit;
+        uniform sampler2D u_TextureUnit1;
+        uniform sampler2D displacement;
+        uniform float progress;
+        const float radius = 0.9;
+        const float width = 0.35;
+        
+        float parabola( float x, float k ) {
+		  return pow( 4. * x * ( 1. - x ), k );
+		}
+        
+        void main(){
+            vec2 start = vec2(0.5, 0.5);
+            float dt = parabola(progress, 1.);
+            vec4 noise = texture2D(displacement, fract(v_TexCoord+progress*0.04));
+            float prog = progress * 0.66 + noise.g * 0.04;
+            float circ = 1. - smoothstep(-width, 0.0, radius * distance(start, v_TexCoord) - prog*(1.+width));
+            float intpl = pow(abs(circ), 1.);
+            vec4 t1 = texture2D(u_TextureUnit, (v_TexCoord - 0.5) * (1.0 - intpl) + 0.5);
+            vec4 t2 = texture2D(u_TextureUnit1, (v_TexCoord - 0.5) * intpl + 0.5);
+            gl_FragColor = mix(t1, t2, intpl);
+        }
 """
 
 const val FRAGMENT_SHADER_DEMO4 = """
@@ -186,9 +209,23 @@ const val FRAGMENT_SHADER_DEMO4 = """
         varying vec2 v_TexCoord;
         uniform sampler2D u_TextureUnit;
         uniform sampler2D u_TextureUnit1;
+        uniform sampler2D displacement;
         uniform float progress;
         
-        
+        vec2 mirrored(vec2 v) {
+			vec2 m = mod(v,2.);
+			return mix(m,2.0 - m, step(1.0 ,m));
+		}
+
+        void main(){
+            vec4 noise = texture2D(displacement, mirrored(v_TexCoord+progress*0.04));
+            float prog = progress * 0.8 - 0.05 + noise.g * 0.06;
+            float intpl = pow(abs(smoothstep(0., 1., (prog*2. - v_TexCoord.x + 0.5))), 10.);
+            
+            vec4 t1 = texture2D(u_TextureUnit, (v_TexCoord - 0.5) * (1.0 - intpl) + 0.5);
+            vec4 t2 = texture2D(u_TextureUnit1, (v_TexCoord - 0.5) * intpl + 0.5);
+            gl_FragColor = mix(t1, t2, intpl);
+        }
 """
 
 const val FRAGMENT_SHADER_DEMO5 = """
@@ -213,7 +250,42 @@ const val FRAGMENT_SHADER_DEMO5 = """
 """
 
 const val FRAGMENT_SHADER_DEMO6 = """
+        precision mediump float;
+        varying vec2 v_TexCoord;
+        uniform sampler2D u_TextureUnit;
+        uniform sampler2D u_TextureUnit1;
+        uniform sampler2D displacement;
+        uniform float progress;
+        
+        const float intensity = 1.0;
+        const float PI = 3.1415;
+		const float angle1 = PI *0.25;
+		const float angle2 = -PI *0.75;
     
+        mat2 getRotM(float angle) {
+		    float s = sin(angle);
+		    float c = cos(angle);
+		    return mat2(c, -s, s, c);
+		}
+        
+        void main(){
+            vec4 disp = texture2D(displacement, v_TexCoord);
+            vec2 dispVec = vec2(disp.r, disp.g);
+
+            vec2 distoredPosition1 = v_TexCoord + getRotM(angle1) * dispVec * intensity  * progress;
+//            vec4 t1 = texture2D(u_TextureUnit, distoredPosition1);
+//
+//            vec2 distoredPosition2 = v_TexCoord + getRotM(angle2) * dispVec * intensity  * (1 - progress);
+//            vec4 t2 = texture2D(u_TextureUnit1, distoredPosition2);
+//
+//            gl_FragColor = mix(t1, t2, progress);
+            
+            vec4 t1 = texture2D(u_TextureUnit, v_TexCoord);
+            vec4 t2 = texture2D(u_TextureUnit1, v_TexCoord);
+            gl_FragColor = mix(t1, t2, progress);
+        }
+        
+        
 """
 
 const val FRAGMENT_SHADER_DEMO7 = """
@@ -236,14 +308,26 @@ fun getDemoFragmentShader(index: Int): String {
             image02 = R.drawable.img22
             FRAGMENT_SHADER_DEMO2
         }
-        3 -> FRAGMENT_SHADER_DEMO3
-        4 -> FRAGMENT_SHADER_DEMO4
+        3 -> {
+            image01 = R.drawable.img21
+            image02 = R.drawable.img22
+            FRAGMENT_SHADER_DEMO3
+        }
+        4 -> {
+            image01 = R.drawable.img21
+            image02 = R.drawable.img22
+            FRAGMENT_SHADER_DEMO4
+        }
         5 -> {
             image01 = R.drawable.img51
             image02 = R.drawable.img52
             FRAGMENT_SHADER_DEMO5
         }
-        6 -> FRAGMENT_SHADER_DEMO6
+        6 -> {
+            image01 = R.drawable.img21
+            image02 = R.drawable.img22
+            FRAGMENT_SHADER_DEMO6
+        }
         7 -> FRAGMENT_SHADER_DEMO7
         8 -> FRAGMENT_SHADER_DEMO8
         else -> ""

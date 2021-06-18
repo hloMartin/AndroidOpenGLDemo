@@ -51,14 +51,16 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
 
     //纹理1
     private var texture1 = 0
-
     //纹理2
     private var texture2 = 0
+    //辅助纹理
+    private var displacement = 0
 
     //纹理对象
-    private var texture1Location = 0
-    private var texture2Location = 0
-    private var progressLocation = 0
+    private var texture1Location = -1
+    private var texture2Location = -1
+    private var displacementLocation = -1
+    private var progressLocation = -1
 
     private var mProgram = 0
 
@@ -120,12 +122,14 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         //检测状态
         GLES20.glGetProgramiv(mProgram, GLES20.GL_LINK_STATUS, compileStatus, 0)
         if (compileStatus[0] != GLES20.GL_TRUE) {
-            log_e("create Program failed....")
+            log_e("create Program failed....${GLES20.glGetProgramInfoLog(mProgram)}")
         }else{
             log_d("create Program succ")
         }
         //使用着色器程序
         GLES20.glUseProgram(mProgram)
+        GLES20.glDeleteShader(vertexShader)
+        GLES20.glDeleteShader(fragmentShader)
 
         //获取着色器内的参数位置
         //顶点位置
@@ -135,8 +139,9 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         texture1Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit")
         texture2Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit1")
         progressLocation = GLES20.glGetUniformLocation(mProgram, "progress")
+        displacementLocation = GLES20.glGetUniformLocation(mProgram, "displacement")
 
-        log_d("vertexPositionLocation:$vertexPositionLocation  texturePositionLocation:$texturePositionLocation")
+        log_d("vertexPositionLocation:$vertexPositionLocation  texturePositionLocation:$texturePositionLocation texture1Location:$texture1Location displacementLocation:$displacementLocation")
 
         //传入顶点坐标
         mVertexData.position(0)
@@ -152,6 +157,9 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         //将图片数据加载到纹理
         texture1 = loadImageTexture(context, image01)
         texture2 = loadImageTexture(context, image02)
+        if(displacementLocation != -1){
+            displacement = loadImageTexture(context, R.drawable.disp1)
+        }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -172,6 +180,11 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture2)
         GLES20.glUniform1i(texture2Location, 1)
 
+        if (displacementLocation != -1) {
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, displacement)
+            GLES20.glUniform1i(displacementLocation, 2)
+        }
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, TEXTURE_POINT_DATA.size / TEXTURE_COUNT)
     }
 

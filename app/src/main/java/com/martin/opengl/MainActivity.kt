@@ -21,13 +21,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun clickDemo3(view: View) {
-        //TODO:
-//        start(3)
+        start(3)
     }
 
     fun clickDemo4(view: View) {
-        //TODO:
-//        start(4)
+        start(4)
     }
 
     fun clickDemo5(view: View) {
