@@ -6,6 +6,6 @@
 
 于是准备通过 OpenGL 在 Android 上实现上面的几种效果。
 
-目前实现了 Demo1，demo2，demo5。其他的效果后续补上。
+目前实现了 Demo1，demo2，demo3, demo4, demo5。其他的效果后续补上。
 
 ![](imgs/demo5.gif)
