@@ -5,6 +5,7 @@ const val FRAGMENT_SHADER_DEMO1 = """
         varying vec2 v_TexCoord;
         uniform sampler2D u_TextureUnit;
         uniform sampler2D u_TextureUnit1;
+        uniform vec4 resolution;
         uniform float progress;            
     
         const float width = 0.5;//min:0, max:10
@@ -147,11 +148,14 @@ const val FRAGMENT_SHADER_DEMO1 = """
         void main() {
             float dt = parabola(progress,1.0);
 			float border = 1.0;
+            
+            vec2 newUv = (v_TexCoord - vec2(0.5))*resolution.zw + vec2(0.5);
 			
-			vec4 color1 = texture2D(u_TextureUnit, v_TexCoord);
-			vec4 color2 = texture2D(u_TextureUnit1, v_TexCoord);
+			vec4 color1 = texture2D(u_TextureUnit, newUv);
+			vec4 color2 = texture2D(u_TextureUnit1, newUv);
 		
-			float realnoise = 0.5*(cnoise(vec4(v_TexCoord.x*scaleX, v_TexCoord.y*scaleY, 0, 0)) +1.);
+			float realnoise = 0.5*(cnoise(vec4(newUv.x*scaleX, newUv.y*scaleY, 0, 0)) +1.);
+
 			float w = width*dt;
 			float maskvalue = smoothstep(1. - w,1.,v_TexCoord.x + mix(-w/2., 1. - w/2., progress));
 			float maskvalue0 = smoothstep(1.,1.,v_TexCoord.x + progress);

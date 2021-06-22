@@ -1,6 +1,7 @@
 package com.martin.opengl
 
 import android.content.Context
+import android.content.res.Resources
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import java.nio.FloatBuffer
@@ -60,6 +61,7 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
     private var texture1Location = -1
     private var texture2Location = -1
     private var displacementLocation = -1
+    private var resolutionLocation = -1
     private var progressLocation = -1
 
     private var mProgram = 0
@@ -140,6 +142,7 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         texture2Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit1")
         progressLocation = GLES20.glGetUniformLocation(mProgram, "progress")
         displacementLocation = GLES20.glGetUniformLocation(mProgram, "displacement")
+        resolutionLocation = GLES20.glGetUniformLocation(mProgram, "resolution")
 
         log_d("vertexPositionLocation:$vertexPositionLocation  texturePositionLocation:$texturePositionLocation texture1Location:$texture1Location displacementLocation:$displacementLocation")
 
@@ -155,10 +158,27 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
         GLES20.glEnableVertexAttribArray(texturePositionLocation)
 
         //将图片数据加载到纹理
-        texture1 = loadImageTexture(context, image01)
+        texture1 = loadImageTexture(context, image01, this::setSize)
         texture2 = loadImageTexture(context, image02)
         if(displacementLocation != -1){
             displacement = loadImageTexture(context, R.drawable.disp1)
+        }
+    }
+
+    private fun setSize(imageWidth: Int, imageHeight: Int){
+        if(resolutionLocation != -1){
+            val displayMetrics = Resources.getSystem().displayMetrics
+            val imageAspect = imageHeight.toFloat() / imageWidth
+            var z: Float
+            var w: Float
+            if ((displayMetrics.heightPixels.toFloat() / displayMetrics.widthPixels) > imageAspect) {
+                z = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels * imageAspect
+                w = 1f
+            } else {
+                z = 1f
+                w = displayMetrics.heightPixels.toFloat() / displayMetrics.widthPixels.toFloat() / imageAspect
+            }
+            GLES20.glUniform4f(resolutionLocation, displayMetrics.widthPixels.toFloat(), displayMetrics.heightPixels.toFloat(), z, w)
         }
     }
 

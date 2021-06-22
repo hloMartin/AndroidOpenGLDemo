@@ -127,7 +127,7 @@ fun loadImageTexture(bitmap: Bitmap?): Int {
 
 /**
  * 根据资源ID获取相应的OpenGL纹理ID，若加载失败则返回0
- * <br></br>必须在GL线程中调用
+ * 必须在GL线程中调用
  */
 fun loadImageTexture(context: Context, resourceId: Int): Int {
     val textureObjectIds = IntArray(1)
@@ -171,7 +171,7 @@ fun loadImageTexture(context: Context, resourceId: Int): Int {
 
 /**
  * 根据资源ID获取相应的OpenGL纹理ID，若加载失败则返回0
- * <br></br>必须在GL线程中调用
+ * 必须在GL线程中调用
  */
 fun loadImageTexture(context: Context, resourceId: Int, setSize: (Int, Int) -> Unit): Int {
     val textureObjectIds = IntArray(1)
