@@ -33,18 +33,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun clickDemo6(view: View) {
-        //TODO:
-//        start(6)
+        start(6)
     }
 
     fun clickDemo7(view: View) {
-        //TODO:
-//        start(7)
+        start(7)
     }
 
     fun clickDemo8(view: View) {
-        //TODO:
-//        start(8)
+        start(8)
     }
 
     private fun start(index: Int) {

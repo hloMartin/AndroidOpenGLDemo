@@ -273,27 +273,85 @@ const val FRAGMENT_SHADER_DEMO6 = """
             vec2 dispVec = vec2(disp.r, disp.g);
 
             vec2 distoredPosition1 = v_TexCoord + getRotM(angle1) * dispVec * intensity  * progress;
-//            vec4 t1 = texture2D(u_TextureUnit, distoredPosition1);
-//
-//            vec2 distoredPosition2 = v_TexCoord + getRotM(angle2) * dispVec * intensity  * (1 - progress);
-//            vec4 t2 = texture2D(u_TextureUnit1, distoredPosition2);
-//
-//            gl_FragColor = mix(t1, t2, progress);
-            
-            vec4 t1 = texture2D(u_TextureUnit, v_TexCoord);
-            vec4 t2 = texture2D(u_TextureUnit1, v_TexCoord);
+            vec4 t1 = texture2D(u_TextureUnit, distoredPosition1);
+
+            vec2 distoredPosition2 = v_TexCoord + getRotM(angle2) * dispVec * intensity  * (1. - progress);
+            vec4 t2 = texture2D(u_TextureUnit1, distoredPosition2);
+
             gl_FragColor = mix(t1, t2, progress);
         }
-        
-        
 """
 
 const val FRAGMENT_SHADER_DEMO7 = """
-    
+        precision mediump float;
+        varying vec2 v_TexCoord;
+        uniform sampler2D u_TextureUnit;
+        uniform sampler2D u_TextureUnit1;
+        uniform float progress;
+        
+        const float PI = 3.1415926;
+        const float intensity = 50.0;
+        
+        mat2 rotate(float a) {
+			float s = sin(a);
+			float c = cos(a);
+			return mat2(c, -s, s, c);
+		}
+        
+        void main(){
+            vec2 uvDivided = fract(v_TexCoord * vec2(intensity, 1.));
+            
+            vec2 uvDisplaced1 = v_TexCoord + rotate(PI/4.)*uvDivided*progress*0.1;
+            vec2 uvDisplaced2 = v_TexCoord + rotate(PI/4.)*uvDivided*(1.-progress)*0.1;
+            
+            vec4 t1 = texture2D(u_TextureUnit, uvDisplaced1);
+            vec4 t2 = texture2D(u_TextureUnit1, uvDisplaced2);
+            
+            gl_FragColor = mix(t1, t2, progress);
+        }
+		
+        
 """
 
 const val FRAGMENT_SHADER_DEMO8 = """
-    
+        precision mediump float;
+        varying vec2 v_TexCoord;
+        uniform sampler2D u_TextureUnit;
+        uniform sampler2D u_TextureUnit1;
+        uniform float progress;
+        
+        
+		float hash(float n) { return fract(sin(n) * 1e4); }
+		float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+        
+        float hnoise(vec2 x) {
+			vec2 i = floor(x);
+			vec2 f = fract(x);
+			float a = hash(i);
+			float b = hash(i + vec2(1.0, 0.0));
+			float c = hash(i + vec2(0.0, 1.0));
+			float d = hash(i + vec2(1.0, 1.0));
+			vec2 u = f * f * (3.0 - 2.0 * f);
+			return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+		}
+        
+        void main(){
+            float hn = hnoise(v_TexCoord);
+            
+            vec2 d = vec2(0., normalize(vec2(0.5, 0.5) - v_TexCoord.xy).y);
+
+            vec2 uv1 = v_TexCoord + d * progress / 5.0 * (1.0 + hn / 2.0);
+            vec2 uv2 = v_TexCoord - d * (1.0 - progress) / 5.0 * (1.0 + hn / 2.0);
+            
+            vec4 t1 = texture2D(u_TextureUnit, uv1);
+            vec4 t2 = texture2D(u_TextureUnit1, uv2);
+            
+//            vec4 t1 = texture2D(u_TextureUnit, v_TexCoord);
+//            vec4 t2 = texture2D(u_TextureUnit1, v_TexCoord);
+            
+            gl_FragColor = mix(t1, t2, progress);
+        }
+        
 """
 
 fun getDemoFragmentShader(index: Int): String {
@@ -328,8 +386,16 @@ fun getDemoFragmentShader(index: Int): String {
             image02 = R.drawable.img22
             FRAGMENT_SHADER_DEMO6
         }
-        7 -> FRAGMENT_SHADER_DEMO7
-        8 -> FRAGMENT_SHADER_DEMO8
+        7 -> {
+            image01 = R.drawable.img21
+            image02 = R.drawable.img22
+            FRAGMENT_SHADER_DEMO7
+        }
+        8 -> {
+            image01 = R.drawable.img81
+            image02 = R.drawable.img82
+            FRAGMENT_SHADER_DEMO8
+        }
         else -> ""
     }
 }
