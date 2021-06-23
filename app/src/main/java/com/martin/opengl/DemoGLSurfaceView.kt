@@ -20,6 +20,7 @@ class DemoGLSurfaceView(context: Context, type: Int) : GLSurfaceView(context) {
 
         renderer = DemoRenderer(context, getDemoFragmentShader(type))
         setRenderer(renderer)
+
         //设置 View 的更新需要主动调用 requestRender()
         renderMode = RENDERMODE_WHEN_DIRTY
     }

@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.res.Resources
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
-import java.nio.FloatBuffer
+import io.reactivex.rxjava3.subjects.PublishSubject
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -47,15 +47,12 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
     //一个纹理坐标占用几个 float 数。
     private val TEXTURE_COUNT = 2
 
-    private var mVertexData: FloatBuffer
-    private var mTexVertexBuffer: FloatBuffer
-
     //纹理1
-    private var texture1 = 0
+    private var texture1 = -1
     //纹理2
-    private var texture2 = 0
+    private var texture2 = -1
     //辅助纹理
-    private var displacement = 0
+    private var displacement = -1
 
     //纹理对象
     private var texture1Location = -1
@@ -71,8 +68,6 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
 
     init {
         FRAGMENT_SHADER = fragmentShader
-        mVertexData = createFloatBuffer(VERTEX_POINT_DATA)
-        mTexVertexBuffer = createFloatBuffer(TEXTURE_POINT_DATA)
     }
 
 
@@ -91,81 +86,34 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        //创建并编译顶点着色器
-        var vertexShader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
-        GLES20.glShaderSource(vertexShader, VETEXT_SHADER)
-        GLES20.glCompileShader(vertexShader)
-        //获取状态
-        var compileStatus = IntArray(1)
-        GLES20.glGetShaderiv(vertexShader, GLES20.GL_COMPILE_STATUS, compileStatus, 0)
-        if (compileStatus[0] == 0) {
-            log_e("load vertex shader error... code:$VETEXT_SHADER")
-        }else{
-            log_d("load vertex shader succ....")
-        }
-        //创建并编译片段着色器
-        var fragmentShader = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
-        GLES20.glShaderSource(fragmentShader, FRAGMENT_SHADER)
-        GLES20.glCompileShader(fragmentShader)
-        //获取状态
-        GLES20.glGetShaderiv(vertexShader, GLES20.GL_COMPILE_STATUS, compileStatus, 0)
-        if (compileStatus[0] == 0) {
-            log_e("load fragment shader error... code:$FRAGMENT_SHADER")
-        }else{
-            log_d("load fragment shader succ....")
+        // 构建着色器程序，并使用。
+        mProgram = glCreateAndUseProgramWithShader(VETEXT_SHADER, FRAGMENT_SHADER)
+        // 从内存中读取顶点数据设置到 GLSL 中
+        glTransformPositionData(mProgram, "a_Position", VERTEX_POINT_DATA, VERTEX_COUNT)
+        glTransformPositionData(mProgram, "a_TexCoord", TEXTURE_POINT_DATA, TEXTURE_COUNT)
+
+        texture1Location = glGetUniformLocation(mProgram, "u_TextureUnit")
+        texture2Location = glGetUniformLocation(mProgram, "u_TextureUnit1")
+        progressLocation = glGetUniformLocation(mProgram, "progress")
+        displacementLocation = glGetUniformLocation(mProgram, "displacement")
+        resolutionLocation = glGetUniformLocation(mProgram, "resolution")
+
+        glSetInt(texture1Location, 0)
+        glSetInt(texture2Location, 1)
+        if(displacementLocation != -1){
+            glSetInt(displacementLocation, 2)
         }
 
-        //创建着色器程序
-        mProgram = GLES20.glCreateProgram()
-        //加载着色器，并将它们链接起来
-        GLES20.glAttachShader(mProgram, vertexShader)
-        GLES20.glAttachShader(mProgram, fragmentShader)
-        GLES20.glLinkProgram(mProgram)
-        //检测状态
-        GLES20.glGetProgramiv(mProgram, GLES20.GL_LINK_STATUS, compileStatus, 0)
-        if (compileStatus[0] != GLES20.GL_TRUE) {
-            log_e("create Program failed....${GLES20.glGetProgramInfoLog(mProgram)}")
-        }else{
-            log_d("create Program succ")
-        }
-        //使用着色器程序
-        GLES20.glUseProgram(mProgram)
-        GLES20.glDeleteShader(vertexShader)
-        GLES20.glDeleteShader(fragmentShader)
-
-        //获取着色器内的参数位置
-        //顶点位置
-        val vertexPositionLocation = GLES20.glGetAttribLocation(mProgram, "a_Position")
-        //纹理位置
-        val texturePositionLocation = GLES20.glGetAttribLocation(mProgram, "a_TexCoord")
-        texture1Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit")
-        texture2Location = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit1")
-        progressLocation = GLES20.glGetUniformLocation(mProgram, "progress")
-        displacementLocation = GLES20.glGetUniformLocation(mProgram, "displacement")
-        resolutionLocation = GLES20.glGetUniformLocation(mProgram, "resolution")
-
-        log_d("vertexPositionLocation:$vertexPositionLocation  texturePositionLocation:$texturePositionLocation texture1Location:$texture1Location displacementLocation:$displacementLocation")
-
-        //传入顶点坐标
-        mVertexData.position(0)
-        //stride 传 0，方法会去自动计算 stride，但是要保证当前数组只有一个属性，多个属性需要手动计算。
-        GLES20.glVertexAttribPointer(vertexPositionLocation, VERTEX_COUNT, GLES20.GL_FLOAT, false, 0, mVertexData)
-        GLES20.glEnableVertexAttribArray(vertexPositionLocation)
-
-        //传入纹理坐标
-        mTexVertexBuffer.position(0)
-        GLES20.glVertexAttribPointer(texturePositionLocation, TEXTURE_COUNT, GLES20.GL_FLOAT, false, 0, mTexVertexBuffer)
-        GLES20.glEnableVertexAttribArray(texturePositionLocation)
-
-        //将图片数据加载到纹理
         texture1 = loadImageTexture(context, image01, this::setSize)
         texture2 = loadImageTexture(context, image02)
+        //先判断 GLSL 中是否有定义辅助纹理。
         if(displacementLocation != -1){
             displacement = loadImageTexture(context, R.drawable.disp1)
         }
     }
 
     private fun setSize(imageWidth: Int, imageHeight: Int){
+        //先判断 GLSL 中是否有定义分辨率参数。
         if(resolutionLocation != -1){
             val displayMetrics = Resources.getSystem().displayMetrics
             val imageAspect = imageHeight.toFloat() / imageWidth
@@ -178,32 +126,31 @@ class DemoRenderer(val context: Context, fragmentShader: String) : GLSurfaceView
                 z = 1f
                 w = displayMetrics.heightPixels.toFloat() / displayMetrics.widthPixels.toFloat() / imageAspect
             }
-            GLES20.glUniform4f(resolutionLocation, displayMetrics.widthPixels.toFloat(), displayMetrics.heightPixels.toFloat(), z, w)
+            glSetFloat(resolutionLocation, displayMetrics.widthPixels.toFloat(), displayMetrics.heightPixels.toFloat(), z, w)
         }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        // 设置视口大小，告诉 OpenGL 可以用来渲染的 surface 的大小
         GLES20.glViewport(0, 0, width, height)
     }
 
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         //更新进度
-        GLES20.glUniform1f(progressLocation, mProgress)
+        glSetFloat(progressLocation, mProgress)
+        if(mProgress == 0f){
+            //切换纹理单位绑定的纹理，实现简单的循环切换
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture1)
 
-        //设置当前活动的纹理单元为纹理单元0
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture1)
-        GLES20.glUniform1i(texture1Location, 0)
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture2)
 
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture2)
-        GLES20.glUniform1i(texture2Location, 1)
-
-        if (displacementLocation != -1) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, displacement)
-            GLES20.glUniform1i(displacementLocation, 2)
+            if(displacementLocation != -1){
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, displacement)
+            }
         }
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, TEXTURE_POINT_DATA.size / TEXTURE_COUNT)
     }
