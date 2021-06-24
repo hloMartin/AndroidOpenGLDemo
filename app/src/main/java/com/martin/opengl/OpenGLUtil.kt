@@ -144,6 +144,13 @@ fun glSetInt(location: Int, vararg values: Int) {
     }
 }
 
+/**
+ * 释放纹理
+ */
+fun glReleaseTexture(vararg textures: Int) {
+    GLES20.glDeleteTextures(textures.size, textures, 0)
+}
+
 fun loadImageTexture(data: ByteBuffer, width: Int, height: Int, format: Int): Int {
     var textureHandles = IntArray(1)
 
