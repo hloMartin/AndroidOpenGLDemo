@@ -1,13 +1,16 @@
 package com.martin.opengl
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.opengl.GLES20
 import android.opengl.GLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+
+class GlUniformBean(val name: String, val value: Any)
+class GlTextureBean(val textureName: String, val bitmap: Bitmap) {
+    var enable = true
+}
 
 /**
  * 使用着色器代码，创建并使用着色器程序。
@@ -115,7 +118,6 @@ fun glGetUniformLocation(program: Int, name: String): Int {
     return GLES20.glGetUniformLocation(program, name)
 }
 
-
 /**
  * 设置着色器的输入参数 | float 类型
  * NOTE：方法需要保证在 GL 线程环境中调用
@@ -160,7 +162,11 @@ fun loadImageTexture(data: ByteBuffer, width: Int, height: Int, format: Int): In
     // 2. 将纹理绑定到OpenGL对象上
     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle)
     // 3. 设置纹理过滤参数:解决纹理缩放过程中的锯齿问题。若不设置，则会导致纹理为黑色
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR)
+    GLES20.glTexParameteri(
+        GLES20.GL_TEXTURE_2D,
+        GLES20.GL_TEXTURE_MIN_FILTER,
+        GLES20.GL_LINEAR_MIPMAP_LINEAR
+    )
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT)
@@ -197,7 +203,11 @@ fun loadImageTexture(bitmap: Bitmap?): Int {
     // 2. 将纹理绑定到OpenGL对象上
     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle)
     // 3. 设置纹理过滤参数:解决纹理缩放过程中的锯齿问题。若不设置，则会导致纹理为黑色
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR)
+    GLES20.glTexParameteri(
+        GLES20.GL_TEXTURE_2D,
+        GLES20.GL_TEXTURE_MIN_FILTER,
+        GLES20.GL_LINEAR_MIPMAP_LINEAR
+    )
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT)
@@ -206,94 +216,5 @@ fun loadImageTexture(bitmap: Bitmap?): Int {
     //生成 MIP 贴图
     GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
-    return textureHandle
-}
-
-/**
- * 根据资源ID获取相应的OpenGL纹理ID，若加载失败则返回0
- * 必须在GL线程中调用
- */
-fun loadImageTexture(context: Context, resourceId: Int): Int {
-    val textureObjectIds = IntArray(1)
-    // 1. 创建纹理对象
-    GLES20.glGenTextures(1, textureObjectIds, 0)
-    val textureHandle = textureObjectIds[0]
-    if (textureObjectIds[0] == 0) {
-        log_e("Could not generate a new OpenGL texture object.")
-        return 0
-    }
-
-    val options = BitmapFactory.Options()
-    options.inScaled = false
-
-    val bitmap = BitmapFactory.decodeResource(
-        context.resources, resourceId, options)
-
-    if (bitmap == null) {
-        log_e("Resource ID $resourceId could not be decoded.")
-        // 加载Bitmap资源失败，删除纹理Id
-        GLES20.glDeleteTextures(1, textureObjectIds, 0)
-        return 0
-    }
-    // 2. 将纹理绑定到OpenGL对象上
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureObjectIds[0])
-    // 3. 设置纹理过滤参数:解决纹理缩放过程中的锯齿问题。若不设置，则会导致纹理为黑色
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT)
-    // 4. 通过OpenGL对象读取Bitmap数据，并且绑定到纹理对象上，之后就可以回收Bitmap对象
-    GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
-    // 5. 生成Mip位图
-    GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
-    // 6. 这里可以对Bitmap对象进行回收
-    // 7. 将纹理从OpenGL对象上解绑
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
-    // 所以整个流程中，OpenGL对象类似一个容器或者中间者的方式，将Bitmap数据转移到OpenGL纹理上
-    return textureHandle
-}
-
-/**
- * 根据资源ID获取相应的OpenGL纹理ID，若加载失败则返回0
- * 必须在GL线程中调用
- */
-fun loadImageTexture(context: Context, resourceId: Int, setSize: (Int, Int) -> Unit): Int {
-    val textureObjectIds = IntArray(1)
-    // 1. 创建纹理对象
-    GLES20.glGenTextures(1, textureObjectIds, 0)
-    val textureHandle = textureObjectIds[0]
-    if (textureObjectIds[0] == 0) {
-        log_e("Could not generate a new OpenGL texture object.")
-        return 0
-    }
-
-    val options = BitmapFactory.Options()
-    options.inScaled = false
-
-    val bitmap = BitmapFactory.decodeResource(
-        context.resources, resourceId, options)
-
-    if (bitmap == null) {
-        log_e("Resource ID $resourceId could not be decoded.")
-        // 加载Bitmap资源失败，删除纹理Id
-        GLES20.glDeleteTextures(1, textureObjectIds, 0)
-        return 0
-    }
-    // 2. 将纹理绑定到OpenGL对象上
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureObjectIds[0])
-    // 3. 设置纹理过滤参数:解决纹理缩放过程中的锯齿问题。若不设置，则会导致纹理为黑色
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT)
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT)
-    // 4. 通过OpenGL对象读取Bitmap数据，并且绑定到纹理对象上，之后就可以回收Bitmap对象
-    GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
-    // 5. 生成Mip位图
-    GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
-    // 6. 这里可以对Bitmap对象进行回收
-    setSize(bitmap.width, bitmap.height)
-    // 7. 将纹理从OpenGL对象上解绑
-    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
-    // 所以整个流程中，OpenGL对象类似一个容器或者中间者的方式，将Bitmap数据转移到OpenGL纹理上
     return textureHandle
 }

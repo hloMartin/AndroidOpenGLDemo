@@ -2,7 +2,7 @@ package com.martin.opengl
 
 import android.util.Log
 
-const val LOG_TAG = "martin"
+const val LOG_TAG = "martinDodo"
 
 fun log_d(msg: String?) {
     msg?.run {

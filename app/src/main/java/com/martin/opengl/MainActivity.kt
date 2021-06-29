@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun start(index: Int) {
-        startActivity(Intent(this, DemoActivity::class.java).apply {
+        startActivity(Intent(this, OpenGLActivity::class.java).apply {
             putExtra("type", index)
         })
     }
