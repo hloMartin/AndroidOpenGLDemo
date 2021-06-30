@@ -14,6 +14,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.functions.Function3
 import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxjava3.subjects.PublishSubject
 
 class OpenGLActivity : AppCompatActivity() {
 
@@ -32,6 +33,10 @@ class OpenGLActivity : AppCompatActivity() {
     }
 
     private fun addGLView(fragmentShaderSource:String){
+        val firstFrameSubject = PublishSubject.create<Boolean>()
+        firstFrameSubject.subscribe {
+            log_d("first draw....")
+        }
         Observable.zip(
             loadImageBitmap(image01),
             loadImageBitmap(image02),
@@ -48,6 +53,7 @@ class OpenGLActivity : AppCompatActivity() {
                     .addTextureInfo("u_TextureUnit", it.first)
                     .addTextureInfo("u_TextureUnit1", it.second)
                     .addTextureInfo("displacement", it.third)
+                    .setFirstFrameSubject(firstFrameSubject)
                     .build()
                 root.addView(gLView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
+import io.reactivex.rxjava3.subjects.PublishSubject
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -16,6 +17,8 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
     private var textureIdMap = hashMapOf<String, Int>()
     //记录 GLSL uniform 变量对应的纹理单元
     private var textureUnitMap = hashMapOf<String, Int>()
+
+    private var hasEverDrawFrame = false
 
     init {
         setEGLContextClientVersion(2)
@@ -130,8 +133,14 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        log_d("[onDrawFrame]")
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, builder.texturePointCount())
+        if(!hasEverDrawFrame){
+            hasEverDrawFrame = true
+            builder.firstFrameSubject?.onNext(true)
+            builder.firstFrameSubject?.onComplete()
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -171,6 +180,7 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
         // GLSL 的纹理对象（uniform 变量名，以及对应绑定的用来生成纹理的 bitmap）
         var textures = mutableListOf<GlTextureBean>()
             private set
+        var firstFrameSubject:PublishSubject<Boolean>? = null
 
         fun texturePointCount():Int{
             return texturePointArr.size / texturePointSize
@@ -199,6 +209,9 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
         }
         fun addTextureInfo(textureName:String, bitmap: Bitmap) = apply {
             this.textures.add(GlTextureBean(textureName, bitmap))
+        }
+        fun setFirstFrameSubject(subject: PublishSubject<Boolean>) = apply {
+            this.firstFrameSubject = subject
         }
 
         fun build(): MyGLSurfaceView {
