@@ -2,7 +2,7 @@ package com.martin.opengl
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.opengl.GLES20
+import android.opengl.GLES31
 import android.opengl.GLSurfaceView
 import io.reactivex.rxjava3.subjects.PublishSubject
 import javax.microedition.khronos.egl.EGLConfig
@@ -48,10 +48,10 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
             textureIdMap[texture2] = t1
 
             //重新激活并绑定纹理
-            GLES20.glActiveTexture(unit1)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, t2)
-            GLES20.glActiveTexture(unit2)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, t1)
+            GLES31.glActiveTexture(unit1)
+            GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, t2)
+            GLES31.glActiveTexture(unit2)
+            GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, t1)
         }
     }
 
@@ -118,24 +118,24 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
                 continue
             }
             val textureId = textureIdAttr[index]
-            val textUnit = GLES20.GL_TEXTURE0 + textureId - 1
+            val textUnit = GLES31.GL_TEXTURE0 + textureId - 1
             //记录 uniform 变量对应的纹理单元
             textureUnitMap[textureInfo.textureName] = textUnit
             //激活并绑定纹理
-            GLES20.glActiveTexture(textUnit)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+            GLES31.glActiveTexture(textUnit)
+            GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, textureId)
         }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         // 设置视口大小，告诉 OpenGL 可以用来渲染的 surface 的大小
-        GLES20.glViewport(0, 0, width, height)
+        GLES31.glViewport(0, 0, width, height)
     }
 
     override fun onDrawFrame(gl: GL10?) {
         log_d("[onDrawFrame]")
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, builder.texturePointCount())
+        GLES31.glClear(GLES31.GL_COLOR_BUFFER_BIT)
+        GLES31.glDrawArrays(GLES31.GL_TRIANGLE_FAN, 0, builder.texturePointCount())
         if(!hasEverDrawFrame){
             hasEverDrawFrame = true
             builder.firstFrameSubject?.onNext(true)
