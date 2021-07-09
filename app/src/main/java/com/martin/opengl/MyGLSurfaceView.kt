@@ -21,7 +21,7 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
     private var hasEverDrawFrame = false
 
     init {
-        setEGLContextClientVersion(2)
+        setEGLContextClientVersion(3)
         setRenderer(this)
         //设置 View 的更新需要主动调用 requestRender()
         renderMode = RENDERMODE_WHEN_DIRTY
