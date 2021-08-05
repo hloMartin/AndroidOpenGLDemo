@@ -12,31 +12,6 @@ class GlTextureBean(val textureName: String, val bitmap: Bitmap) {
     var enable = true
 }
 
-/**
- * 使用着色器代码，创建并使用着色器程序。
- * NOTE：方法需要保证在 GL 线程环境中调用
- */
-fun glCreateAndUseProgramWithShader(vertexShaderSource: String, fragmentShaderSource: String): Int {
-    //顶点着色器
-    var vertexShader = createShader(vertexShaderSource, GLES31.GL_VERTEX_SHADER)
-    //片段着色器
-    var fragmentShader = createShader(fragmentShaderSource, GLES31.GL_FRAGMENT_SHADER)
-    //创建着色器程序
-    val program = GLES31.glCreateProgram()
-    //加载着色器
-    GLES31.glAttachShader(program, vertexShader)
-    GLES31.glAttachShader(program, fragmentShader)
-    //连接着色器
-    GLES31.glLinkProgram(program)
-    //检测着色器程序连接状态
-    checkProgramLinkStatus(program)
-    //使用着色器
-    GLES31.glUseProgram(program)
-    //删除着色器，它们已经链接到我们的程序中了，已经不再需要了
-    GLES31.glDeleteShader(vertexShader)
-    GLES31.glDeleteShader(fragmentShader)
-    return program
-}
 
 /**
  * 输入内存中的坐标数据转化成 GLSL 中顶点坐标参数
@@ -73,7 +48,7 @@ private fun createFloatBuffer(coords: FloatArray): FloatBuffer {
 /**
  * 检测着色器程序连接状态，并输出日志
  */
-private fun checkProgramLinkStatus(program: Int) {
+fun checkProgramLinkStatus(program: Int) {
     val compileStatus = IntArray(1)
     GLES31.glGetProgramiv(program, GLES31.GL_LINK_STATUS, compileStatus, 0)
     if (compileStatus[0] != GLES31.GL_TRUE) {
@@ -86,7 +61,7 @@ private fun checkProgramLinkStatus(program: Int) {
 /**
  * 创建并编译着色器
  */
-private fun createShader(shaderSource: String, shaderType: Int): Int {
+fun createShader(shaderSource: String, shaderType: Int): Int {
     var shader = GLES31.glCreateShader(shaderType)
     GLES31.glShaderSource(shader, shaderSource)
     GLES31.glCompileShader(shader)
@@ -108,42 +83,6 @@ private fun createShader(shaderSource: String, shaderType: Int): Int {
  */
 fun glGetAttrLocation(program: Int, name: String): Int {
     return GLES31.glGetAttribLocation(program, name)
-}
-
-/**
- * 获取 shader 中 uniform 变量的 location
- * NOTE：方法需要保证在 GL 线程环境中调用
- */
-fun glGetUniformLocation(program: Int, name: String): Int {
-    return GLES31.glGetUniformLocation(program, name)
-}
-
-/**
- * 设置着色器的输入参数 | float 类型
- * NOTE：方法需要保证在 GL 线程环境中调用
- */
-fun glSetFloat(location: Int, vararg values: Float) {
-    when (values.size) {
-        1 -> GLES31.glUniform1f(location, values[0])
-        2 -> GLES31.glUniform2f(location, values[0], values[1])
-        3 -> GLES31.glUniform3f(location, values[0], values[1], values[2])
-        4 -> GLES31.glUniform4f(location, values[0], values[1], values[2], values[3])
-        else -> log_e("[glSetFloat] wrong params, $values")
-    }
-}
-
-/**
- * 设置着色器的输入参数 | Int 类型
- * NOTE：方法需要保证在 GL 线程环境中调用
- */
-fun glSetInt(location: Int, vararg values: Int) {
-    when (values.size) {
-        1 -> GLES31.glUniform1i(location, values[0])
-        2 -> GLES31.glUniform2i(location, values[0], values[1])
-        3 -> GLES31.glUniform3i(location, values[0], values[1], values[2])
-        4 -> GLES31.glUniform4i(location, values[0], values[1], values[2], values[3])
-        else -> log_e("[glSetInt] wrong params, $values")
-    }
 }
 
 /**

@@ -10,9 +10,8 @@ import javax.microedition.khronos.opengles.GL10
 
 class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurfaceView(context),GLSurfaceView.Renderer {
 
-    private var program = -1
+    private lateinit var shader: Shader
 
-    private var locationMap = hashMapOf<String, Int>()
     //记录 GLSL uniform 变量绑定的纹理对象 ID
     private var textureIdMap = hashMapOf<String, Int>()
     //记录 GLSL uniform 变量对应的纹理单元
@@ -29,7 +28,7 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
 
     fun updateUniform(name: String, value: Any){
         queueEvent {
-            setUniform(name, value)
+            shader.setUniform(name, value)
             requestRender()
         }
     }
@@ -55,33 +54,21 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
         }
     }
 
-    private fun setUniform(name: String, value: Any) {
-        locationMap[name]?.let { location ->
-            when (value) {
-                is Int -> glSetInt(location, value)
-                is Float -> glSetFloat(location, value)
-                is IntArray -> glSetInt(location, *value)
-                is FloatArray -> glSetFloat(location, *value)
-            }
-        }
-    }
-
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        // 构建着色器程序，并使用。
-        program = glCreateAndUseProgramWithShader(builder.vertexShaderSource, builder.fragmentShaderSource)
+        shader = Shader(builder.vertexShaderSource, builder.fragmentShaderSource)
+        shader.use()
         // 从内存中读取顶点数据设置到 GLSL 中
-        glTransformPositionData(program, "a_Position", builder.vertexPointArr, builder.vertexPointSize)
-        glTransformPositionData(program, "a_TexCoord", builder.texturePointArr, builder.texturePointSize)
+        glTransformPositionData(shader.programId, "a_Position", builder.vertexPointArr, builder.vertexPointSize)
+        glTransformPositionData(shader.programId, "a_TexCoord", builder.texturePointArr, builder.texturePointSize)
 
         //获取 uniform 参数的 location，并设置对应的值
         for(index in 0 until builder.uniforms.size){
             val uniformInfo = builder.uniforms[index]
-            val location = glGetUniformLocation(program, uniformInfo.name)
+            val location = shader.getUniformLocation(uniformInfo.name)
             if (location == -1) {
                 continue
             }
-            locationMap[uniformInfo.name]  = location
-            setUniform(uniformInfo.name, uniformInfo.value)
+            shader.setUniform(uniformInfo.name, uniformInfo.value)
         }
         /*
         * 绑定过程分为 3 步
@@ -96,7 +83,7 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
         for (index in 0 until builder.textures.size) {
             val textureInfo = builder.textures[index]
             //获取纹理变量的 location
-            val location = glGetUniformLocation(program, textureInfo.textureName)
+            val location = shader.getUniformLocation(textureInfo.textureName)
             if (location == -1) {
                 //说明对应的纹理变量在 GLSL 中没有定义。
                 textureInfo.enable = false
@@ -106,7 +93,7 @@ class MyGLSurfaceView(context: Context, private val builder: GLBuilder) : GLSurf
             val texture = loadImageTexture(textureInfo.bitmap)
             textureIdAttr[index] = texture
             //设置纹理变量的值
-            glSetInt(location, texture - 1)
+            shader.setUniform(textureInfo.textureName, texture - 1)
             //添加纹理对象至集合，方便后续释放
             textureIdMap[textureInfo.textureName] = texture
         }
